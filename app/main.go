@@ -19,6 +19,8 @@ const (
 	maxImageSize   = 1024 * 1000
 	maxImageWidth  = 1000
 	maxImageHeight = 1000
+	cacheLimitSize = 1024 * 1024 * 50
+	cacheLiveTime  = time.Second * 60 * 60
 )
 
 func main() {
@@ -32,7 +34,7 @@ func main() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGABRT)
 
-	cacheService = newCache()
+	cacheService = newCache(cacheLimitSize, cacheLiveTime)
 
 	router := chi.NewRouter()
 	router.Use(middleware.Throttle(500), middleware.Timeout(time.Second*60))

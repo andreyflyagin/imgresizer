@@ -17,10 +17,12 @@ type cacheItem struct {
 type cache struct {
 	currSize int64
 	store    *lru.Cache
+	maxSize  int64
+	liveTime time.Duration
 }
 
-func newCache() *cache {
-	res := cache{}
+func newCache(maxSize int64, liveTime time.Duration) *cache {
+	res := cache{maxSize: maxSize, liveTime: liveTime}
 
 	fn := func(key interface{}, value interface{}) {
 		log.Printf("[INFO] cache purged %s", key)
@@ -35,10 +37,6 @@ func newCache() *cache {
 	return &res
 }
 
-const (
-	cacheLimitSize = 1024 * 1000
-)
-
 func (c *cache) add(key string, data []byte, hash string) {
 	d := cacheItem{
 		item:    data,
@@ -51,8 +49,8 @@ func (c *cache) add(key string, data []byte, hash string) {
 
 	log.Printf("[INFO] added to cache %d bytes", len(data))
 
-	if c.currSize > cacheLimitSize {
-		for atomic.LoadInt64(&c.currSize) > cacheLimitSize {
+	if c.currSize > c.maxSize {
+		for atomic.LoadInt64(&c.currSize) > c.maxSize {
 			c.store.RemoveOldest()
 		}
 	}
@@ -61,7 +59,7 @@ func (c *cache) add(key string, data []byte, hash string) {
 func (c *cache) get(key string) ([]byte, string) {
 	if b, ok := c.store.Get(key); ok {
 		v := b.(cacheItem)
-		if v.created.Add(time.Second * 60 * 60).After(time.Now()) {
+		if v.created.Add(c.liveTime).After(time.Now()) {
 			log.Printf("[INFO] cache hit %s", key)
 			return v.item, v.hash
 		}
