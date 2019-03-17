@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/disintegration/imaging"
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 	"image"
 	"log"
 	"net/http"
@@ -119,6 +121,13 @@ func processImage(imgurl string, w http.ResponseWriter, width, height int) ([]by
 	return buf.Bytes(), hash
 }
 
+func getRouter() chi.Router{
+	router := chi.NewRouter()
+	router.Use(middleware.Throttle(500), middleware.Timeout(time.Second*60))
+	router.Get("/", handler)
+	return router
+}
+
 var (
 	cacheService *cache
 )
@@ -157,11 +166,14 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	)
 
 	cacheKey := `"` + parsedUrl + "|" + widthStr + "|" + heightStr + `"`
-	data, hash = cacheService.get(cacheKey)
+
+	if cacheService != nil {
+		data, hash = cacheService.get(cacheKey)
+	}
 
 	if data == nil {
 		data, hash = processImage(parsedUrl, w, width, height)
-		if data != nil {
+		if data != nil && cacheService != nil {
 			cacheService.add(cacheKey, data, hash)
 		}
 	}

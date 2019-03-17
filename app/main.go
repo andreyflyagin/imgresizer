@@ -2,8 +2,6 @@ package main
 
 import (
 	"flag"
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
 	"net/http"
 
 	"context"
@@ -36,14 +34,10 @@ func main() {
 
 	cacheService = newCache(cacheLimitSize, cacheLiveTime)
 
-	router := chi.NewRouter()
-	router.Use(middleware.Throttle(500), middleware.Timeout(time.Second*60))
-	router.Get("/", handler)
-
 	addr := fmt.Sprintf(":%d", *listenPort)
 	srv := http.Server{
 		Addr:              addr,
-		Handler:           router,
+		Handler:           getRouter(),
 		ReadHeaderTimeout: time.Second * 10,
 		WriteTimeout:      time.Second * 30,
 		IdleTimeout:       time.Second * 30,

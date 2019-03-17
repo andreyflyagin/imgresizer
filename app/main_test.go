@@ -57,7 +57,7 @@ func Test_main(t *testing.T) {
 
 	resp, err := http.Get(fmt.Sprintf("http://localhost:8182/?url=%s&width=100&height=100", serv.URL))
 	require.Nil(t, err)
-	assert.Equal(t, 200, resp.StatusCode)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	_, fileType, err := image.Decode(resp.Body)
 	assert.Equal(t, "jpeg", fileType)
 	require.Nil(t, err)

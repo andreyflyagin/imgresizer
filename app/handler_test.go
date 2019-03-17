@@ -1,12 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
 
-func Test_handler(t *testing.T) {
+func Test_validate(t *testing.T) {
 	err := validate("http://ya.ru", "200", "300")
 	assert.Nil(t, err)
 
@@ -30,4 +33,16 @@ func Test_handler(t *testing.T) {
 
 	err = validate("http://ya.ru", "19", "1002")
 	assert.True(t, strings.Contains(err.Error(), "max height 1000 limit exceeded"))
+}
+
+func Test_handler(t *testing.T) {
+	serv := mockGateway()
+	defer serv.Close()
+
+	ts := httptest.NewServer(getRouter())
+	defer ts.Close()
+
+	resp, err := http.Get(fmt.Sprintf(ts.URL + "/?url=%s/&width=100&height=100", serv.URL))
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
